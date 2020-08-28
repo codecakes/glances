@@ -1,0 +1,80 @@
+name: glances
+adopt-info: glances
+summary: Glances an Eye on your system. A top/htop alternative.
+description: |
+  Glances is a cross-platform monitoring tool which aims to present
+  a maximum of information in a minimum of space through a curses or
+  Web based interface. It can adapt dynamically the displayed information
+  depending on the user interface size.
+
+base: core
+grade: stable
+confinement: strict
+
+apps:
+  glances:
+    command: >
+      bin/glances-launch
+      $SNAP/bin/glances
+    plugs:
+      - network
+      - system-observe
+      - mount-observe
+      - hardware-observe
+      - log-observe
+      - network-observe
+      - physical-memory-observe
+      - upower-observe
+      - home
+      - network-bind
+    environment:
+      LANG: C.UTF-8
+      LC_ALL: C.UTF-8
+
+plugs:
+  home-glances-config:
+    interface: personal-files
+    read:
+      - $HOME/.config/glances/glances.conf
+  etc-glances-config:
+    interface: system-files
+    read:
+      - /etc/glances/glances.conf
+
+parts:
+  glances:
+    after:
+    - selective-checkout
+    plugin: python
+    source: .
+    # FIXME: Theoretically this also replaces `summary` and `description`
+    #        keys, however due to the following bug we still need to keep
+    #        them until it is fixed.
+    #        https://bugs.launchpad.net/snapcraft/+bug/1813364
+    parse-info: [setup.py]
+    override-pull: |
+      snapcraftctl pull
+      "$SNAPCRAFT_STAGE"/scriptlets/selective-checkout
+  bottle:
+    plugin: python
+    source: https://github.com/bottlepy/bottle.git
+    source-branch: release-0.12
+    source-depth: 1
+  docker:
+    plugin: python
+    source: https://github.com/docker/docker-py.git
+    source-tag: '3.7.3'
+    source-depth: 1
+  launchers:
+    source: snap/local/launchers
+    plugin: dump
+    organize:
+      '*': bin/
+  selective-checkout:
+    plugin: nil
+    build-packages:
+    - git
+    stage-snaps:
+    - selective-checkout
+    prime:
+    - -*
